@@ -140,6 +140,7 @@ class MemberServicesAgent:
             model=settings.llm_model,
             temperature=settings.llm_temperature,
             timeout_s=settings.llm_timeout_s,
+            reasoning_effort=settings.llm_reasoning_effort,
             input_cost_per_1m=settings.llm_input_cost_per_1m,
             output_cost_per_1m=settings.llm_output_cost_per_1m,
         )

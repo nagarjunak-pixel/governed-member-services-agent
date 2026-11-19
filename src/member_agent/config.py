@@ -59,6 +59,7 @@ class Settings:
     llm_model: str = "qwen3.8:27b"
     llm_temperature: float = 0.0
     llm_timeout_s: float = 60.0
+    llm_reasoning_effort: str | None = None
     llm_input_cost_per_1m: float = 0.0
     llm_output_cost_per_1m: float = 0.0
     budgets: BudgetConfig = field(default_factory=BudgetConfig)
@@ -118,6 +119,17 @@ class Settings:
             max_latency_ms=int(os.environ.get("BUDGET_MAX_LATENCY_MS", "60000")),
         )
 
+        resolved_llm_url = (
+            llm_base_url or os.environ.get("LLM_BASE_URL", "http://127.0.0.1:11434/v1")
+        ).rstrip("/")
+        raw_effort = os.environ.get("LLM_REASONING_EFFORT")
+        if raw_effort is None:
+            # Default to non-thinking mode on local Ollama for fast, concise tool calling
+            is_local_ollama = "11434" in resolved_llm_url
+            reasoning_effort: str | None = "none" if is_local_ollama else None
+        else:
+            reasoning_effort = raw_effort.strip() or None
+
         return cls(
             pack_dir=resolved_pack,
             mock_api_base_url=(
@@ -125,13 +137,12 @@ class Settings:
             ).rstrip("/"),
             tenant_tokens=tokens,
             directory_api_key=dir_key,
-            llm_base_url=(
-                llm_base_url or os.environ.get("LLM_BASE_URL", "http://127.0.0.1:11434/v1")
-            ).rstrip("/"),
+            llm_base_url=resolved_llm_url,
             llm_api_key=llm_api_key or os.environ.get("LLM_API_KEY", "ollama"),
             llm_model=llm_model or os.environ.get("LLM_MODEL", "qwen3.8:27b"),
             llm_temperature=float(os.environ.get("LLM_TEMPERATURE", "0.0")),
             llm_timeout_s=float(os.environ.get("LLM_TIMEOUT_S", "60")),
+            llm_reasoning_effort=reasoning_effort,
             llm_input_cost_per_1m=float(os.environ.get("LLM_INPUT_COST_PER_1M", "0.0")),
             llm_output_cost_per_1m=float(os.environ.get("LLM_OUTPUT_COST_PER_1M", "0.0")),
             budgets=budgets,

@@ -43,6 +43,7 @@ class OpenAICompatibleLLM:
         model: str,
         temperature: float = 0.0,
         timeout_s: float = 60.0,
+        reasoning_effort: str | None = None,
         input_cost_per_1m: float = 0.0,
         output_cost_per_1m: float = 0.0,
         transport: httpx.BaseTransport | None = None,
@@ -51,6 +52,7 @@ class OpenAICompatibleLLM:
         self.api_key = api_key
         self.model = model
         self.temperature = temperature
+        self.reasoning_effort = reasoning_effort
         self.input_cost_per_1m = input_cost_per_1m
         self.output_cost_per_1m = output_cost_per_1m
         self._http = httpx.Client(
@@ -77,6 +79,8 @@ class OpenAICompatibleLLM:
             "temperature": self.temperature,
             "messages": messages,
         }
+        if self.reasoning_effort:
+            payload["reasoning_effort"] = self.reasoning_effort
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
