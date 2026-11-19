@@ -1,6 +1,7 @@
 """Unit tests for the CI regression gate thresholds and report rendering."""
 
 from eval.gate import evaluate_gate, render_markdown_report
+from eval.harness import _fact_present
 
 
 def _base_report(**summary_overrides):
@@ -74,3 +75,11 @@ def test_regression_gate_fails_on_accuracy_drop():
     assert gate.passed is False
     failed = {c.name for c in gate.checks if not c.passed}
     assert {"raw_overall_pass_rate", "source_verified_pass_rate"}.issubset(failed)
+
+
+def test_status_fact_matcher_does_not_confuse_plan_paid_with_paid_status():
+    denied_reply = "Claim C2680156037 is **DENIED**. Plan paid: $0.00. Denial code: CO-16."
+    assert _fact_present(denied_reply, "DENIED") is True
+    assert _fact_present(denied_reply, "PAID") is False
+    paid_reply = "Claim C123 is **PAID**. Plan paid: $104.03."
+    assert _fact_present(paid_reply, "PAID") is True

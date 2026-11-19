@@ -47,6 +47,16 @@ def _fact_present(reply: str, fact: str) -> bool:
     norm_reply = _normalise(reply)
     norm_fact = _normalise(fact)
 
+    # Claim status tokens (e.g. PAID, DENIED, PENDED, IN_PROCESS): avoid false positives like "Plan paid: $0.00"
+    if fact in {"PAID", "DENIED", "PENDED", "IN_PROCESS"}:
+        if fact == "PAID":
+            # Strip "plan paid" / "amount paid" / "not paid" phrases before matching status PAID
+            cleaned = re.sub(r"\b(?:plan|amount|already|not)\s+paid\b", "", reply, flags=re.IGNORECASE)
+            return bool(re.search(r"\bPAID\b", cleaned)) or bool(
+                re.search(r"\bstatus\s*[:\-*]?\s*paid\b", cleaned, re.IGNORECASE)
+            )
+        return bool(re.search(rf"\b{re.escape(fact)}\b", reply, re.IGNORECASE))
+
     if norm_fact in norm_reply:
         return True
 
