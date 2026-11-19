@@ -25,9 +25,12 @@ member-agent = "member_agent.cli:main"
 member-agent-api = "member_agent.api:main"
 member-agent-eval = "eval.harness:main"
 
-[tool.setuptools.packages.find]
-where = ["src", "."]
-include = ["member_agent*", "eval*"]
+[tool.setuptools]
+packages = ["member_agent", "eval"]
+
+[tool.setuptools.package-dir]
+member_agent = "src/member_agent"
+eval = "eval"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

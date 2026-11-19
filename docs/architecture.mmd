@@ -1,0 +1,56 @@
+flowchart TB
+    subgraph CallCenter["Rep Desktop / Contact Center (250 peak concurrent reps)"]
+        REP["Member-Services Rep UI<br/>(plan_a or plan_b SSO session)"]
+        CTI["CTI Call-Connect Event<br/>(tenant_id + member_id)"]
+    end
+
+    subgraph Edge["AWS Single-Region Edge (us-east-1, 3 AZs)"]
+        WAF["AWS WAF + ALB (TLS 1.3)"]
+        IDP["OIDC IdP / Cognito<br/>(Signed JWT: rep_id + immutable tenant_id)"]
+    end
+
+    subgraph VPC["Private VPC (Multi-AZ, No Public Egress for PHI)"]
+        subgraph AppTier["Stateless Compute (ECS Fargate Auto-Scaling)"]
+            API["Agent Orchestrator API<br/>(Multi-turn loop, SSE streaming)"]
+            GW["Centralized Tool Gateway<br/>• Immutable tenant/member binding<br/>• PHI minimisation & SSN last-4 check<br/>• Outbound 3rd-party PHI blocker<br/>• 2-phase turn-separated write confirm<br/>• Step / Cost / Latency budgets"]
+        end
+
+        subgraph DataTier["Tenant-Isolated Data & State (Per-Tenant KMS CMKs)"]
+            REDIS["ElastiCache Redis (Multi-AZ)<br/>CTI pre-warmed claims & benefits<br/>Keyed by tenant:member (5m TTL)"]
+            PG["Aurora PostgreSQL + pgvector<br/>RLS enforced on tenant_id<br/>Quarantine gate on KB ingest<br/>Session & pending-write state"]
+            SECRETS["AWS Secrets Manager<br/>Per-tenant API tokens & dir key"]
+        end
+
+        subgraph ModelTier["Private Model Inference (VPC Endpoint, BAA, Zero Retention)"]
+            LLM["Amazon Bedrock<br/>(OpenAI-compatible adapter)<br/>Primary: Fast Tier-1 + Prompt Cache<br/>Fallback: Secondary Model"]
+        end
+
+        subgraph AuditTier["HIPAA 6-Year Immutable Audit (NFR-5)"]
+            SCRUB["PHI Log Scrubber + OTel Collector"]
+            S3["S3 Object Lock (WORM Compliance)<br/>Tenant-partitioned traces<br/>Glacier Instant Retrieval (6 yrs)"]
+        end
+    end
+
+    subgraph Upstream["External / Client Systems"]
+        PLAN_A["Harborview (plan_a) APIs<br/>Members / Claims / Grievances"]
+        PLAN_B["Prairie Sky (plan_b) APIs<br/>Members / Claims / Grievances"]
+        DIR["CareFinder Provider Directory<br/>(3rd-Party API, X-Api-Key, ZERO PHI)"]
+    end
+
+    REP -->|"HTTPS + JWT"| WAF --> API
+    IDP -.->|"Verify JWT"| WAF
+    CTI -.->|"Pre-warm claims/benefits"| GW
+
+    API <-->|"Curated schemas + minimised data"| LLM
+    API -->|"All tool calls"| GW
+    GW --> REDIS
+    GW --> PG
+    GW -.->|"Fetch tenant token"| SECRETS
+
+    GW -->|"Bearer plan_a only"| PLAN_A
+    GW -->|"Bearer plan_b only"| PLAN_B
+    GW -->|"PHI-blocked query + X-Api-Key"| DIR
+
+    API --> SCRUB
+    GW --> SCRUB
+    SCRUB -->|"PHI-redacted JSONL"| S3
