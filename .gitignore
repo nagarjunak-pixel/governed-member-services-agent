@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Supplied assessment pack — NEVER commit
+pack/
+data/
+kb/
+mock_services/
+tools/
+eval/conversations.json
+BRIEF.md
+
+# Local traces & scratch
+traces/
+*.log
+.DS_Store
