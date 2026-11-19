@@ -18,7 +18,7 @@ Every tool invocation passes through a centralized **Tool Gateway** (`src/member
 │   ├── agent.py         # Multi-turn conversation orchestrator
 │   ├── api.py           # FastAPI HTTP service (/sessions, /messages, /trace)
 │   └── cli.py           # Interactive & scripted multi-turn CLI
-├── eval/
+├── src/eval/
 │   ├── harness.py       # 40-case evaluation runner against live mock API + LLM
 │   └── gate.py          # CI regression gate with justified thresholds + report generator
 ├── tests/               # Unit & integration tests (gateway, idempotency, KB, redaction, gate)
